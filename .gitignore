@@ -1,0 +1,8 @@
+.env
+.git
+/artem
+/local_parser
+/venv
+__pycache__
+*.pyc
+/data/tests
