@@ -1,8 +1,10 @@
 import argparse
 import asyncio
+
 from src.app.db import SessionLocal, init_db
 from src.ozon.repository import OzonRepository
 from src.ozon.service import OzonProductImportService
+
 
 async def async_main() -> None:
     parser = argparse.ArgumentParser(description="Import Ozon products to local SQLite DB")
@@ -18,6 +20,7 @@ async def async_main() -> None:
         service = OzonProductImportService(repo)
         for shop in shops:
             print(await service.import_shop_products(shop))
+
 
 if __name__ == "__main__":
     asyncio.run(async_main())

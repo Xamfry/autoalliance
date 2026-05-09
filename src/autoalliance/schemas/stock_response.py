@@ -1,5 +1,4 @@
 from typing import List, Optional
-
 from pydantic import BaseModel, RootModel
 
 
@@ -36,6 +35,7 @@ class OfferItem(BaseModel):
     quantity: int
     warehouses: List[WarehouseItem]
 
+
     def get_warehouse_qty(self, warehouse_name: str) -> int:
         names = {
             "Рябиновая": "Москва, Рябиновая ул.",
@@ -51,6 +51,7 @@ class OfferItem(BaseModel):
 
 class OfferResponse(RootModel):
     root: List[OfferItem]
+
 
     def first_item_or_none(self) -> Optional[OfferItem]:
         if self.root:

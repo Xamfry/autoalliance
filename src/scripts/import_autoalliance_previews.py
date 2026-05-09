@@ -1,9 +1,8 @@
 import argparse
 import asyncio
 import logging
-from pathlib import Path
-
 import httpx
+from pathlib import Path
 from sqlalchemy import select
 from tqdm import tqdm
 

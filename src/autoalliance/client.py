@@ -6,6 +6,8 @@ from bs4 import BeautifulSoup
 import httpx
 
 from src.app.config import settings
+
+
 AUTOOPT_SITE_BASE_URL = "https://www.autoopt.ru"
 
 log = logging.getLogger(__name__)
@@ -19,6 +21,7 @@ def clean_order_code(value: str | int) -> str:
 
     return value
 
+
 class AutoAllianceApiError(RuntimeError):
     pass
 
@@ -26,6 +29,7 @@ class AutoAllianceApiError(RuntimeError):
 class AutoAllianceClient:
     def __init__(self, http_client: httpx.AsyncClient) -> None:
         self.http_client = http_client
+
 
     async def _get_with_retries(
         self,
@@ -78,6 +82,7 @@ class AutoAllianceClient:
 
         return []
 
+
     async def _post_with_retries(
         self,
         path: str,
@@ -127,6 +132,7 @@ class AutoAllianceClient:
                 await asyncio.sleep(wait)
 
         raise AutoAllianceApiError(f"Autoopt request failed after {retries} retries: {last_error}")
+
 
     async def search_parts_batch(self, items: list[dict], *, analogs: bool = True) -> list[dict]:
         if not items:

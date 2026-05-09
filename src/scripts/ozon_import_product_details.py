@@ -1,9 +1,8 @@
 import argparse
 import asyncio
 import logging
-from pathlib import Path
-
 import httpx
+from pathlib import Path
 from tqdm import tqdm
 
 from src.app.db import SessionLocal, init_db

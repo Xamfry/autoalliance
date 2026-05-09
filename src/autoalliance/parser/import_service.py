@@ -1,10 +1,9 @@
 import logging
-from pathlib import Path
-
 import asyncio
 import httpx
 import pandas as pd
 from tqdm import tqdm
+from pathlib import Path
 
 from src.app.config import settings
 from src.app.db import SessionLocal
@@ -20,6 +19,7 @@ ARTICLE_STEPS = [
     ("manufacturer_article", "manufacturer_article", "Артикул производителя"),
     ("factory_article", "factory_article", "Артикул завода"),
 ]
+
 
 REQUIRED_COLUMNS = [
     "Код товара",

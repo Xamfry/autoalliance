@@ -2,10 +2,9 @@ import argparse
 import asyncio
 import json
 import os
-from pathlib import Path
-
 import httpx
 import pandas as pd
+from pathlib import Path
 from dotenv import load_dotenv
 
 
@@ -14,6 +13,7 @@ ARTICLE_COLUMNS = [
     "Артикул производителя",
     "Артикул завода",
 ]
+
 
 BRAND_COLUMN = "Производитель"
 

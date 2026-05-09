@@ -1,10 +1,10 @@
 from typing import Any, Dict, List
 from urllib.parse import urljoin
-
 from bs4 import BeautifulSoup
-from pydantic import BaseModel, computed_field, Field
+from pydantic import BaseModel, computed_field
 
-from ..product_card import ProductCard
+from src.autoalliance.product_card import ProductCard
+
 
 BASE_URL = "https://autoopt.ru/"
 
@@ -12,21 +12,25 @@ BASE_URL = "https://autoopt.ru/"
 class ProductCharacteristicsResponse(BaseModel):
     response: Dict[str, Any]
 
+
     @computed_field
     @property
     def data(self) -> Dict[str, Any]:
         """Извлечение данных о товаре из ответа."""
         return self.response.get("good", {})
 
+
     @property
     def good_id(self) -> int | None:
         """ID товара."""
         return self.data.get("id")
 
+
     @property
     def name(self) -> str | None:
         """Название товара."""
         return self.data.get("title")
+
 
     @property
     def url(self) -> str | None:
@@ -37,10 +41,12 @@ class ProductCharacteristicsResponse(BaseModel):
             return urljoin(catalog_url, path)
         return None
 
+
     @property
     def order_code(self) -> str | None:
         """Код для заказа."""
         return self.data.get("code")
+
 
     @property
     def article(self) -> str | None:
@@ -49,10 +55,12 @@ class ProductCharacteristicsResponse(BaseModel):
             return str(article)
         return None
 
+
     @property
     def articles(self) -> str | None:
         """Дополнительные артикулы в виде строки."""
         return self.data.get("articles") or None
+
 
     @property
     def brand_short_name(self) -> str | None:
@@ -66,10 +74,12 @@ class ProductCharacteristicsResponse(BaseModel):
 
         return short_name
 
+
     @property
     def brand_full_name(self) -> str | None:
         """Полное торговое наименование бренда (например, "РезиноТехнический Ресурс")."""
         return self.data.get("brand", {}).get("tradeMarkName") or None
+
 
     @property
     def description(self) -> str | None:
@@ -80,11 +90,13 @@ class ProductCharacteristicsResponse(BaseModel):
         soup = BeautifulSoup(description_html, "html.parser")
         return soup.get_text(separator=" ", strip=True)
 
+
     @property
     def images(self) -> List[str]:
         """Список URL изображений товара."""
         image_paths = self.data.get("big_pictures", [])
         return [urljoin(BASE_URL, path) for path in image_paths]
+
 
     @property
     def certificates(self) -> List[str]:
@@ -92,11 +104,13 @@ class ProductCharacteristicsResponse(BaseModel):
         cert_list = self.data.get("certificates", [])
         return [urljoin(BASE_URL, cert["url"]) for cert in cert_list if "url" in cert]
 
+
     @property
     def analog_codes(self) -> List[str]:
         """Список кодов аналогов."""
         analogs_list = self.response.get("analogs", [])
         return [analog["code"] for analog in analogs_list if "code" in analog]
+
 
     @property
     def characteristics(self) -> Dict[str, Any]:
@@ -109,6 +123,7 @@ class ProductCharacteristicsResponse(BaseModel):
             for prop in combined
             if "name" in prop and "value" in prop
         }
+
 
     @property
     def category_paths(self) -> List[str]:
@@ -133,6 +148,7 @@ class ProductCharacteristicsResponse(BaseModel):
             all_paths.append(" / ".join(path_parts))
 
         return all_paths
+
 
     def to_domain(self) -> ProductCard:
         """Конвертирует схему в доменную модель ProductCard."""

@@ -1,6 +1,12 @@
 from __future__ import annotations
 import httpx
+
 from src.ozon.models import OzonShop
+from src.ozon.schemas.posting_request import PostingRequest
+from src.ozon.schemas.posting_response import PostingResponse
+from src.ozon.schemas.posting_split_request import PostingSplitRequest
+from src.ozon.schemas.posting_split_response import PostingSplitResponse
+
 
 class OzonClient:
     base_url = "https://api-seller.ozon.ru"
@@ -9,13 +15,16 @@ class OzonClient:
         self.shop = shop
         self.headers = {"Client-Id": str(shop.client_id), "Api-Key": str(shop.token), "Content-Type": "application/json"}
 
+
     async def _post(self, path: str, payload: dict) -> dict:
         response = await self.http_client.post(f"{self.base_url}{path}", headers=self.headers, json=payload)
         response.raise_for_status()
         return response.json()
 
+
     async def get_product_list(self, *, limit: int = 1000, last_id: str = "", visibility: str = "ALL") -> dict:
         return await self._post("/v3/product/list", {"filter": {"visibility": visibility}, "last_id": last_id, "limit": limit})
+
 
     async def get_all_product_ids(self, *, visibility: str = "ALL") -> list[int]:
         product_ids: list[int] = []
@@ -32,6 +41,7 @@ class OzonClient:
             if not items or not last_id:
                 break
         return product_ids
+
 
     async def get_product_info_list(self, product_ids: list[int]) -> list[dict]:
         if not product_ids:
@@ -75,6 +85,7 @@ class OzonClient:
             result.extend(items)
 
         return result
+
 
     async def get_product_attributes(
         self,
@@ -126,3 +137,45 @@ class OzonClient:
             result.extend(items)
 
         return result
+    
+
+    async def get_postings(self, postings_request: PostingRequest) -> PostingResponse:
+        data = await self._post(
+            "/v3/posting/fbs/list",
+            postings_request.model_dump(exclude_none=True, by_alias=True),
+        )
+        return PostingResponse.model_validate(data)
+
+
+    async def get_all_postings(self, postings_request: PostingRequest) -> PostingResponse:
+        offset = postings_request.offset
+        limit = postings_request.limit
+
+        merged = PostingResponse.empty_instance()
+
+        while True:
+            page_request = postings_request.model_copy(update={"offset": offset})
+            page = await self.get_postings(page_request)
+
+            merged.merge_other_response(page)
+
+            if not page.result.postings:
+                break
+
+            if not page.result.has_next:
+                break
+
+            offset += limit
+
+        return merged
+
+
+    async def split_posting(
+        self,
+        posting_split_request: PostingSplitRequest,
+    ) -> PostingSplitResponse:
+        data = await self._post(
+            "/v1/posting/fbs/split",
+            posting_split_request.model_dump(),
+        )
+        return PostingSplitResponse.model_validate(data)

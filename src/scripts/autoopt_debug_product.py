@@ -2,9 +2,8 @@ import argparse
 import asyncio
 import json
 import os
-from pathlib import Path
-
 import httpx
+from pathlib import Path
 from dotenv import load_dotenv
 
 

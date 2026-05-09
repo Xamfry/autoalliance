@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from src.autoalliance.client import AutoAllianceApiClient
+from src.autoalliance.client import AutoAllianceClient
 from src.autoalliance.product_card import ProductCard
 from src.autoalliance.parser.mapper import SearchCandidate
 
@@ -13,8 +13,9 @@ class SearchResult:
 
 
 class AutoAllianceService:
-    def __init__(self, client: AutoAllianceApiClient) -> None:
+    def __init__(self, client: AutoAllianceClient) -> None:
         self.client = client
+
 
     async def fetch_product(self, candidate: SearchCandidate) -> SearchResult:
         try:
@@ -24,6 +25,7 @@ class AutoAllianceService:
             return SearchResult(candidate=candidate, product=product)
         except Exception as exc:  # noqa: BLE001
             return SearchResult(candidate=candidate, product=None, error_message=str(exc))
+
 
     async def fetch_product_with_fallback(self, candidates: list[SearchCandidate]) -> SearchResult:
         last_result: SearchResult | None = None

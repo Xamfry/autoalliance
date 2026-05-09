@@ -1,6 +1,10 @@
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
-from src.ozon.models import OzonProduct, OzonShop, OzonSyncLog
+from src.ozon.models import (OzonProduct, OzonShop, 
+                             OzonSyncLog, OzonPosting, 
+                             OzonPostingProduct)
+
+from src.autoalliance.models import SourceProduct
 
 
 def _to_float(value):
@@ -103,16 +107,12 @@ class OzonRepository:
 
         statuses = item.get("statuses") or {}
         stocks = item.get("stocks") or {}
-
         product.product_id = item.get("id") or item.get("product_id")
         product.sku = item.get("sku") or item.get("fbo_sku") or item.get("fbs_sku")
         product.name = item.get("name")
-
         product.category_id = item.get("category_id")
         product.description_category_id = item.get("description_category_id")
-
         product.first_image_url = _get_first_image_url(item)
-
         product.archived = bool(item.get("is_archived") or item.get("archived") or False)
         product.visible = item.get("visible")
         product.moderate_status = (
@@ -128,15 +128,12 @@ class OzonRepository:
             product.price = _to_float(price)
 
         product.barcodes_json = item.get("barcodes") or []
-
         product.fbs_commission_percent = _get_commission_percent(item, "FBS")
         product.fbo_commission_percent = _get_commission_percent(item, "FBO")
         product.rfbs_commission_percent = _get_commission_percent(item, "RFBS")
         product.fbp_commission_percent = _get_commission_percent(item, "FBP")
-
         product.stocks_json = stocks.get("stocks") or []
         product.has_stock = bool(stocks.get("has_stock"))
-
         product.raw_json = item
 
         return product
@@ -240,3 +237,70 @@ class OzonRepository:
         )
 
         return True
+    
+
+    def upsert_postings(self, *, shop: OzonShop, postings: list) -> int:
+        saved = 0
+
+        for posting_item in postings:
+            posting = self.db.scalar(
+                select(OzonPosting).where(
+                    OzonPosting.posting_number == posting_item.posting_number
+                )
+            )
+
+            if posting is None:
+                posting = OzonPosting(
+                    shop_id=shop.id,
+                    posting_number=posting_item.posting_number,
+                )
+                self.db.add(posting)
+                self.db.flush()
+
+            posting.shop_id = shop.id
+            posting.order_id = posting_item.order_id
+            posting.order_number = posting_item.order_number
+            posting.status = posting_item.status
+            posting.substatus = posting_item.substatus
+            posting.in_process_at = posting_item.in_process_at
+            posting.shipment_date = posting_item.shipment_date
+            posting.raw_json = posting_item.model_dump(mode="json")
+
+            self.db.query(OzonPostingProduct).filter(
+                OzonPostingProduct.posting_id == posting.id
+            ).delete()
+
+            for product_item in posting_item.products:
+                ozon_product = self.db.scalar(
+                    select(OzonProduct).where(
+                        OzonProduct.shop_id == shop.id,
+                        OzonProduct.offer_id == product_item.offer_id,
+                    )
+                )
+
+                source_product = self.db.scalar(
+                    select(SourceProduct).where(
+                        SourceProduct.article == product_item.offer_id
+                    )
+                )
+
+                posting_product = OzonPostingProduct(
+                    posting_id=posting.id,
+                    offer_id=product_item.offer_id,
+                    sku=product_item.sku,
+                    name=product_item.name,
+                    quantity=product_item.quantity,
+                    image_url=ozon_product.first_image_url if ozon_product else None,
+                    manufacturer_article=(
+                        source_product.manufacturer_article
+                        if source_product
+                        else None
+                    ),
+                )
+
+                self.db.add(posting_product)
+
+            saved += 1
+
+        self.db.flush()
+        return saved

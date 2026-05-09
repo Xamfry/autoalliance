@@ -1,7 +1,11 @@
 from datetime import datetime
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, String, Text, Column, UniqueConstraint, func
+from sqlalchemy import (Boolean, DateTime, Float, ForeignKey, 
+                        Integer, JSON, String, Text, 
+                        UniqueConstraint, func)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from src.app.db import Base
+
 
 class OzonShop(Base):
     __tablename__ = "ozon_shops"
@@ -15,6 +19,7 @@ class OzonShop(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
     products: Mapped[list["OzonProduct"]] = relationship(back_populates="shop")
+
 
 class OzonProduct(Base):
     __tablename__ = "ozon_products"
@@ -54,6 +59,7 @@ class OzonProduct(Base):
     shop: Mapped[OzonShop] = relationship(back_populates="products")
     raw_json: Mapped[dict | None] = mapped_column(JSON)
 
+
 class OzonSyncLog(Base):
     __tablename__ = "ozon_sync_logs"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -65,3 +71,46 @@ class OzonSyncLog(Base):
     items_success: Mapped[int] = mapped_column(Integer, default=0)
     items_failed: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class OzonPosting(Base):
+    __tablename__ = "ozon_postings"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    shop_id: Mapped[int] = mapped_column(ForeignKey("ozon_shops.id"), index=True)
+    posting_number: Mapped[str] = mapped_column(String(255), index=True, unique=True)
+    order_id: Mapped[int | None] = mapped_column(Integer, index=True)
+    order_number: Mapped[str | None] = mapped_column(String(255), index=True)
+    status: Mapped[str | None] = mapped_column(String(255), index=True)
+    substatus: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    in_process_at: Mapped[datetime | None] = mapped_column(DateTime)
+    shipment_date: Mapped[datetime | None] = mapped_column(DateTime)
+    is_split_parent: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_split_child: Mapped[bool] = mapped_column(Boolean, default=False)
+    raw_json: Mapped[dict | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+    shop: Mapped["OzonShop"] = relationship()
+    products: Mapped[list["OzonPostingProduct"]] = relationship(
+        back_populates="posting",
+        cascade="all, delete-orphan",
+    )
+
+
+class OzonPostingProduct(Base):
+    __tablename__ = "ozon_posting_products"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    posting_id: Mapped[int] = mapped_column(
+        ForeignKey("ozon_postings.id"),
+        index=True,
+    )
+    offer_id: Mapped[str | None] = mapped_column(String(255), index=True)
+    sku: Mapped[int | None] = mapped_column(Integer, index=True)
+    name: Mapped[str | None] = mapped_column(String(1000))
+    quantity: Mapped[int | None] = mapped_column(Integer)
+    image_url: Mapped[str | None] = mapped_column(String(1500))
+    manufacturer_article: Mapped[str | None] = mapped_column(String(255), index=True)
+    posting: Mapped["OzonPosting"] = relationship(back_populates="products")

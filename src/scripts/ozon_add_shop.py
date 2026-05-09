@@ -1,6 +1,8 @@
 from getpass import getpass
+
 from src.app.db import SessionLocal, init_db
 from src.ozon.repository import OzonRepository
+
 
 def main() -> None:
     init_db()
@@ -15,6 +17,7 @@ def main() -> None:
         repo = OzonRepository(db)
         shop = repo.create_or_update_shop(shop_name=shop_name, client_id=client_id, token=token, warehouse=warehouse)
         print(f"Saved shop: id={shop.id}, shop_name={shop.shop_name}")
+
 
 if __name__ == "__main__":
     main()

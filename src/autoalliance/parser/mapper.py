@@ -26,6 +26,7 @@ class SourceRow:
     stock_ketcherskaya: str | None
     stock_other: str | None
 
+
     def build_candidates(self) -> list[SearchCandidate]:
         ordered = [
             SearchCandidate(field_name="article", value=self.article or ""),

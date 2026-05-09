@@ -1,12 +1,15 @@
 import httpx
+
 from src.app.config import settings
 from src.ozon.client import OzonClient
 from src.ozon.models import OzonShop
 from src.ozon.repository import OzonRepository
 
+
 class OzonProductImportService:
     def __init__(self, repository: OzonRepository) -> None:
         self.repository = repository
+
 
     async def import_shop_products(self, shop: OzonShop) -> dict:
         async with httpx.AsyncClient(timeout=settings.autoalliance_timeout) as http_client:

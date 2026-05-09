@@ -2,9 +2,12 @@ from bs4 import BeautifulSoup
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from urllib.parse import urljoin
+
 from src.autoalliance.models import AutoAllianceProduct, SourceProduct
 
+
 AUTOOPT_SITE_BASE_URL = "https://www.autoopt.ru/"
+
 
 def _to_float(value) -> float | None:
     try:
@@ -46,9 +49,11 @@ def _main_property_value(good: dict, name: str):
             return prop.get("value")
     return None
 
+
 class AutoAllianceRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
+
 
     def upsert_source_product_from_row(self, row: dict) -> SourceProduct:
         source_code = str(row.get("Код товара") or "").strip()
@@ -83,6 +88,7 @@ class AutoAllianceRepository:
         self.db.flush()
         return product
     
+
     def save_found_product(
         self,
         *,
@@ -158,6 +164,7 @@ class AutoAllianceRepository:
         self.db.flush()
         return product
 
+
     def save_not_found(
         self,
         *,
@@ -179,6 +186,7 @@ class AutoAllianceRepository:
         self.db.add(product)
         self.db.flush()
         return product
+    
     
     def update_product_preview_from_json(
         self,

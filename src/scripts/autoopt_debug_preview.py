@@ -1,9 +1,8 @@
 import argparse
 import asyncio
 import json
-from pathlib import Path
-
 import httpx
+from pathlib import Path
 
 
 HEADERS = {
