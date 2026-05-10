@@ -1,0 +1,112 @@
+<div class="cards">
+    {% for row in rows %}
+    <div class="card">
+
+        <div class="card-image">
+            {% if row.image_url %}
+                <img src="{{ row.image_url }}" alt="">
+            {% else %}
+                <div class="no-img">Нет фото</div>
+            {% endif %}
+        </div>
+
+        <div class="card-body">
+
+            <div class="card-title">
+                {{ row.name }}
+            </div>
+
+            <div class="meta">
+                <b>Артикул:</b> {{ row.offer_id }}
+            </div>
+
+            <div class="meta">
+                <b>Артикул производителя:</b>
+                {{ row.manufacturer_article or "-" }}
+            </div>
+
+            <div class="meta">
+                <b>Номер отправления:</b>
+                {{ row.posting_number }}
+            </div>
+
+            <div class="meta">
+                <b>Магазин:</b>
+                {{ row.shop_name }}
+            </div>
+
+            <div class="meta">
+                <b>Количество:</b>
+                {{ row.quantity }}
+            </div>
+
+            <div class="meta">
+                <b>Статус:</b>
+                {{ row.status_ru }}
+            </div>
+
+            <div class="meta">
+                <b>Дата создания:</b>
+                {% if row.created_at %}
+                    {{ row.created_at.strftime("%d.%m.%Y %H:%M") }}
+                {% else %}
+                    -
+                {% endif %}
+            </div>
+
+            <div class="meta">
+                <b>Статус курьера:</b>
+                {{ row.courier_status_ru }}
+            </div>
+
+            <div class="actions">
+                
+                {% if row.courier_status == "collecting" %}
+                    <a
+                        class="btn gray"
+                        href="/courier/posting/{{ row.posting_id }}/label"
+                        target="_blank"
+                    >
+                        Скачать стикер
+                    </a>
+                {% else %}
+                    <form
+                        method="post"
+                        action="/courier/posting/{{ row.posting_id }}/status?status={{ status }}&search={{ search }}"
+                        hx-post="/courier/posting/{{ row.posting_id }}/status?status={{ status }}&search={{ search }}"
+                        hx-target="#courier-cards"
+                        hx-swap="innerHTML"
+                    >
+                        <input type="hidden" name="courier_status" value="collecting">
+                        <button class="btn blue" type="submit">Собрать</button>
+                    </form>
+                {% endif %}
+
+                <form
+                    method="post"
+                    action="/courier/posting/{{ row.posting_id }}/status?status={{ status }}&search={{ search }}"
+                    hx-post="/courier/posting/{{ row.posting_id }}/status?status={{ status }}&search={{ search }}"
+                    hx-target="#courier-cards"
+                    hx-swap="innerHTML"
+                >
+                    <input type="hidden" name="courier_status" value="ready">
+                    <button class="btn green" type="submit">Готово</button>
+                </form>
+
+                <form
+                    method="post"
+                    action="/courier/posting/{{ row.posting_id }}/status?status={{ status }}&search={{ search }}"
+                    hx-post="/courier/posting/{{ row.posting_id }}/status?status={{ status }}&search={{ search }}"
+                    hx-target="#courier-cards"
+                    hx-swap="innerHTML"
+                >
+                    <input type="hidden" name="courier_status" value="problem">
+                    <button class="btn red" type="submit">Проблема</button>
+                </form>
+            </div>
+
+        </div>
+
+    </div>
+    {% endfor %}
+</div>

@@ -98,6 +98,11 @@ class OzonPosting(Base):
         back_populates="posting",
         cascade="all, delete-orphan",
     )
+    courier_status: Mapped[str | None] = mapped_column(
+        String(50),
+        default="new",
+        index=True,
+    )
 
 
 class OzonPostingProduct(Base):

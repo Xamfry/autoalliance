@@ -1,5 +1,8 @@
 from __future__ import annotations
 import httpx
+import asyncio
+import base64
+from typing import Any
 
 from src.ozon.models import OzonShop
 from src.ozon.schemas.posting_request import PostingRequest
@@ -179,3 +182,65 @@ class OzonClient:
             posting_split_request.model_dump(),
         )
         return PostingSplitResponse.model_validate(data)
+    
+
+    async def get_fbs_package_label_pdf_v2(
+        self,
+        *,
+        posting_numbers: list[str],
+    ) -> bytes | None:
+        data = await self._post(
+            "/v2/posting/fbs/package-label",
+            {
+                "posting_number": posting_numbers,
+            },
+        )
+
+        if not isinstance(data, dict):
+            return None
+
+        content = (
+            data.get("content")
+            or data.get("file")
+            or data.get("pdf")
+            or data.get("result", {}).get("content")
+            or data.get("result", {}).get("file")
+        )
+
+        if not content:
+            return None
+
+        if isinstance(content, str):
+            return base64.b64decode(content)
+
+        return None
+
+
+    async def get_fbs_package_label_pdf_with_wait(
+        self,
+        *,
+        posting_numbers: list[str],
+        attempts: int = 6,
+        delay_seconds: float = 2.0,
+    ) -> bytes:
+        last_error: Exception | None = None
+
+        for attempt in range(1, attempts + 1):
+            try:
+                pdf = await self.get_fbs_package_label_pdf_v2(
+                    posting_numbers=posting_numbers,
+                )
+
+                if pdf:
+                    return pdf
+
+            except Exception as exc:
+                last_error = exc
+
+            await asyncio.sleep(delay_seconds)
+
+        raise RuntimeError(
+            f"Ozon не отдал стикер после {attempts} попыток. "
+            f"posting_numbers={posting_numbers}. "
+            f"last_error={last_error}"
+        )

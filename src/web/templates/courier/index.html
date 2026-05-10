@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page">
+    <header class="header">
+        <div>
+            <h1>Страница курьера</h1>
+            <p>Список отправлений Ozon</p>
+        </div>
+    </header>
+
+    <form class="filters" method="get" action="/courier">
+        <input
+            type="text"
+            name="search"
+            placeholder="Поиск по названию, артикулу, номеру отправления"
+            value="{{ search }}"
+        >
+
+        <select name="status">
+            <option value="awaiting_packaging" {% if status == "awaiting_packaging" %}selected{% endif %}>
+                Ожидает сборки
+            </option>
+            <option value="awaiting_deliver" {% if status == "awaiting_deliver" %}selected{% endif %}>
+                Готово к отгрузке
+            </option>
+            <option value="all" {% if status == "all" %}selected{% endif %}>
+                Все
+            </option>
+        </select>
+
+        <button type="submit">Показать</button>
+    </form>
+
+    <div
+        id="courier-cards"
+        hx-get="/courier/list?status={{ status }}&search={{ search }}"
+        hx-trigger="every 10s"
+        hx-swap="innerHTML"
+    >
+        {% include "courier/_cards.html" %}
+    </div>
+</div>
+
+
+{% endblock %}

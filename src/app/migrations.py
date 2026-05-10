@@ -42,3 +42,5 @@ def run_sqlite_migrations(engine: Engine) -> None:
     _add_column_if_missing(engine, "ozon_products", "weight_g", "INTEGER")
     
     _add_column_if_missing(engine, "ozon_shops", "warehouse", "INTEGER")
+
+    _add_column_if_missing(engine, "ozon_postings", "courier_status", "TEXT")
