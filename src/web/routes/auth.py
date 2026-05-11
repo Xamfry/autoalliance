@@ -20,6 +20,7 @@ def login_page(
         request=request,
         name="login.html",
         context={
+            "title": "Вход",
             "error": None,
             "next_url": next_url,
         },

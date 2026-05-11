@@ -67,7 +67,14 @@
                 </div>
 
                 <div class="meta">
-                    <b>Роль:</b> {{ user.role }}
+                    <b>Роль:</b>
+                    {% if user.role == "admin" %}
+                        Администратор
+                    {% elif user.role == "courier" %}
+                        Курьер
+                    {% else %}
+                        {{ user.role }}
+                    {% endif %}
                 </div>
 
                 <div class="meta">

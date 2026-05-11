@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="login-page">
+    <div class="login-card">
+        <h1>{{ title or "Ошибка" }}</h1>
+
+        <div class="error">
+            {{ message }}
+        </div>
+
+        <a class="btn gray" href="{{ back_url or '/courier' }}">
+            Назад
+        </a>
+    </div>
+</div>
+{% endblock %}

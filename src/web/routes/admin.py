@@ -34,6 +34,7 @@ def admin_index(
         request=request,
         name="admin/index.html",
         context={
+            "title": "Админ-панель",
             "admin": admin,
         },
     )
@@ -53,6 +54,7 @@ def users_page(
         request=request,
         name="admin/users.html",
         context={
+            "title": "Пользователи",
             "admin": admin,
             "users": users,
         },
@@ -142,6 +144,7 @@ def logs_page(
         request=request,
         name="admin/logs.html",
         context={
+            "title": "Журнал действий",
             "admin": admin,
             "logs": logs,
         },

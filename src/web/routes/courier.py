@@ -1,4 +1,5 @@
 import httpx
+from pathlib import Path
 from fastapi import APIRouter, Depends, Query, Request, Form
 from fastapi.responses import HTMLResponse, Response
 from fastapi.templating import Jinja2Templates
@@ -127,6 +128,7 @@ def courier_page(
         request=request,
         name="courier/index.html",
         context={
+            "title": "Страница курьера",
             "rows": rows,
             "status": status,
             "search": search,
@@ -227,11 +229,36 @@ def courier_cards_partial(
 
 @router.get("/posting/{posting_id}/label")
 async def download_posting_label(
+    request: Request,
     posting_id: int,
     db: Session = Depends(get_db),
     user: WebUser = Depends(get_current_user),
 ):
     posting = db.get(OzonPosting, posting_id)
+
+    if not posting:
+        return templates.TemplateResponse(
+            request=request,
+            name="error.html",
+            context={
+                "title": "Стикер не найден",
+                "message": "Отправление не найдено.",
+                "back_url": "/courier",
+            },
+            status_code=404,
+        )
+
+    if posting.courier_status != "collecting":
+        return templates.TemplateResponse(
+            request=request,
+            name="error.html",
+            context={
+                "title": "Стикер недоступен",
+                "message": "Стикер доступен только после нажатия «Собрать».",
+                "back_url": "/courier",
+            },
+            status_code=403,
+        )
 
     allowed_ozon_statuses = {
         "awaiting_packaging",
@@ -239,59 +266,71 @@ async def download_posting_label(
     }
 
     if posting.status not in allowed_ozon_statuses:
-        return Response(
-            content=f"Стикер недоступен для статуса Ozon: {posting.status}",
+        return templates.TemplateResponse(
+            request=request,
+            name="error.html",
+            context={
+                "title": "Стикер недоступен",
+                "message": f"Стикер недоступен для статуса Ozon: {posting.status}",
+                "back_url": "/courier",
+            },
             status_code=409,
-            media_type="text/plain; charset=utf-8",
         )
 
-    if not posting:
-        return Response(
-            "Отправление не найдено", 
-            status_code=404,
-            media_type="text/plain; charset=utf-8",)
+    labels_dir = Path("data/labels")
+    labels_dir.mkdir(parents=True, exist_ok=True)
 
-    if posting.courier_status != "collecting":
-        return Response(
-            "Стикер доступен только после нажатия «Собрать»",
-            status_code=403,
-            media_type="text/plain; charset=utf-8",
-        )
+    label_path = labels_dir / f"{posting.posting_number}.pdf"
 
-    shop = db.get(OzonShop, posting.shop_id)
+    if label_path.exists() and label_path.stat().st_size > 0:
+        pdf = label_path.read_bytes()
+    else:
+        shop = db.get(OzonShop, posting.shop_id)
 
-    if not shop:
-        return Response(
-            "Магазин не найден", 
-            status_code=404, 
-            media_type="text/plain; charset=utf-8"
+        if not shop:
+            return templates.TemplateResponse(
+                request=request,
+                name="error.html",
+                context={
+                    "title": "Магазин не найден",
+                    "message": "Магазин для отправления не найден.",
+                    "back_url": "/courier",
+                },
+                status_code=404,
             )
 
-    headers = {
-        "Client-Id": shop.client_id,
-        "Api-Key": shop.token,
-        "Content-Type": "application/json",
-    }
+        headers = {
+            "Client-Id": shop.client_id,
+            "Api-Key": shop.token,
+            "Content-Type": "application/json",
+        }
 
-    async with httpx.AsyncClient(
-        base_url="https://api-seller.ozon.ru",
-        headers=headers,
-        timeout=60,
-    ) as http_client:
-        client = OzonClient(http_client=http_client, shop=shop)
+        async with httpx.AsyncClient(
+            base_url="https://api-seller.ozon.ru",
+            headers=headers,
+            timeout=60,
+        ) as http_client:
+            client = OzonClient(http_client=http_client, shop=shop)
 
-        try:
-            pdf = await client.get_fbs_package_label_pdf_with_wait(
-                posting_numbers=[posting.posting_number],
-                attempts=8,
-                delay_seconds=2,
-            )
-        except Exception as exc:
-            return Response(
-                content=f"Не удалось получить стикер: {exc}",
-                status_code=502,
-                media_type="text/plain; charset=utf-8",
-            )
+            try:
+                pdf = await client.get_fbs_package_label_pdf_with_wait(
+                    posting_numbers=[posting.posting_number],
+                    attempts=8,
+                    delay_seconds=2,
+                )
+            except Exception as exc:
+                return templates.TemplateResponse(
+                    request=request,
+                    name="error.html",
+                    context={
+                        "title": "Ошибка получения стикера",
+                        "message": f"Не удалось получить стикер: {exc}",
+                        "back_url": "/courier",
+                    },
+                    status_code=502,
+                )
+
+        label_path.write_bytes(pdf)
 
     filename = f"ozon_label_{posting.posting_number}.pdf"
 
@@ -302,4 +341,3 @@ async def download_posting_label(
             "Content-Disposition": f'attachment; filename="{filename}"'
         },
     )
-
