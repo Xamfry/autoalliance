@@ -103,6 +103,15 @@ class OzonPosting(Base):
         default="new",
         index=True,
     )
+    courier_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("web_users.id"),
+        nullable=True,
+        index=True,
+    )
+    courier_username: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
 
 
 class OzonPostingProduct(Base):

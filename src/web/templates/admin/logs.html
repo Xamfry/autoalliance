@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page">
+
+    <div class="header">
+        <h1>Журнал действий</h1>
+        <a class="btn gray" href="/admin">Назад</a>
+    </div>
+
+    <div
+        id="logs-table"
+        hx-get="/admin/logs/list"
+        hx-trigger="every 10s"
+        hx-swap="innerHTML"
+    >
+        {% include "admin/_logs_table.html" %}
+    </div>
+
+</div>
+{% endblock %}

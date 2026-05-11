@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page">
+
+    <div class="header">
+        <h1>Админ-панель</h1>
+
+        <p>
+            Пользователь: {{ admin.username }}
+        </p>
+    </div>
+
+    <div class="cards">
+
+        <a class="admin-link-card" href="/admin/users">
+            <div class="admin-link-title">
+                Пользователи
+            </div>
+
+            <div class="admin-link-desc">
+                Управление курьерами и администраторами
+            </div>
+        </a>
+
+        <a class="admin-link-card" href="/courier">
+            <div class="admin-link-title">
+                Страница курьера
+            </div>
+
+            <div class="admin-link-desc">
+                Перейти к отправлениям
+            </div>
+        </a>
+
+        <a class="admin-link-card" href="/admin/logs">
+            <div class="admin-link-title">
+                Журнал действий
+            </div>
+
+            <div class="admin-link-desc">
+                Кто и когда менял статусы заказов
+            </div>
+        </a>
+
+    </div>
+
+</div>
+{% endblock %}

@@ -55,21 +55,17 @@
             </div>
 
             <div class="meta">
-                <b>Статус курьера:</b>
+                <b>Статус заказа:</b>
                 {{ row.courier_status_ru }}
             </div>
 
+            <div class="meta">
+                <b>Курьер:</b>
+                {{ row.courier_username or "-" }}
+            </div>
+
             <div class="actions">
-                
-                {% if row.courier_status == "collecting" %}
-                    <a
-                        class="btn gray"
-                        href="/courier/posting/{{ row.posting_id }}/label"
-                        target="_blank"
-                    >
-                        Скачать стикер
-                    </a>
-                {% else %}
+                {% if row.courier_status in ["new", None] %}
                     <form
                         method="post"
                         action="/courier/posting/{{ row.posting_id }}/status?status={{ status }}&search={{ search }}"
@@ -82,17 +78,38 @@
                     </form>
                 {% endif %}
 
-                <form
-                    method="post"
-                    action="/courier/posting/{{ row.posting_id }}/status?status={{ status }}&search={{ search }}"
-                    hx-post="/courier/posting/{{ row.posting_id }}/status?status={{ status }}&search={{ search }}"
-                    hx-target="#courier-cards"
-                    hx-swap="innerHTML"
-                >
-                    <input type="hidden" name="courier_status" value="ready">
-                    <button class="btn green" type="submit">Готово</button>
-                </form>
+                {% if row.courier_status == "collecting" %}
+                    <a
+                        class="btn gray"
+                        href="/courier/posting/{{ row.posting_id }}/label"
+                        target="_blank"
+                    >
+                        Скачать стикер
+                    </a>
 
+                    <form
+                        method="post"
+                        action="/courier/posting/{{ row.posting_id }}/status?status={{ status }}&search={{ search }}"
+                        hx-post="/courier/posting/{{ row.posting_id }}/status?status={{ status }}&search={{ search }}"
+                        hx-target="#courier-cards"
+                        hx-swap="innerHTML"
+                    >
+                        <input type="hidden" name="courier_status" value="ready">
+                        <button
+                            class="btn green"
+                            type="submit"
+                            onclick="return confirm('Подтвердить, что заказ полностью собран?')"
+                        >
+                            Готово
+                        </button>
+                    </form>
+                {% endif %}
+
+                {% if row.courier_status == "ready" %}
+                    <span class="badge green">Готово</span>
+                {% endif %}
+
+                {#
                 <form
                     method="post"
                     action="/courier/posting/{{ row.posting_id }}/status?status={{ status }}&search={{ search }}"
@@ -103,6 +120,7 @@
                     <input type="hidden" name="courier_status" value="problem">
                     <button class="btn red" type="submit">Проблема</button>
                 </form>
+                #}
             </div>
 
         </div>

@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session
 from src.autoalliance.models import SourceProduct
 from src.ozon.models import OzonPosting, OzonPostingProduct, OzonShop
 from src.ozon.client import OzonClient
-from src.web.deps import get_db
+from src.web.deps import get_db, get_current_user
+from src.web.models import WebUser, CourierActionLog
 
 
 router = APIRouter(prefix="/courier", tags=["courier"])
@@ -18,7 +19,7 @@ templates = Jinja2Templates(directory="src/web/templates")
 COURIER_STATUS_RU = {
     None: "Новый",
     "new": "Новый",
-    "collecting": "Собран",
+    "collecting": "Собирается",
     "ready": "Готово",
     "problem": "Проблема",
 }
@@ -105,6 +106,7 @@ def get_courier_rows(
                 "courier_status_ru": COURIER_STATUS_RU.get(posting.courier_status, 
                                                            posting.courier_status or "Новый"),
                 "created_at": posting.in_process_at,
+                "courier_username": posting.courier_username,
             }
         )
 
@@ -117,6 +119,7 @@ def courier_page(
     db: Session = Depends(get_db),
     status: str = Query("awaiting_packaging"),
     search: str = Query(""),
+    user: WebUser = Depends(get_current_user),
 ):
     rows = get_courier_rows(db, status=status, search=search)
 
@@ -127,6 +130,7 @@ def courier_page(
             "rows": rows,
             "status": status,
             "search": search,
+            "user": user,
         },
     )
 
@@ -139,15 +143,52 @@ def update_courier_status(
     db: Session = Depends(get_db),
     status: str = Query("awaiting_packaging"),
     search: str = Query(""),
+    user: WebUser = Depends(get_current_user),
 ):
     allowed = {"new", "collecting", "ready", "problem"}
 
-    if courier_status in allowed:
-        posting = db.get(OzonPosting, posting_id)
+    if courier_status not in allowed:
+        rows = get_courier_rows(db, status=status, search=search)
 
-        if posting:
-            posting.courier_status = courier_status
-            db.commit()
+        return templates.TemplateResponse(
+            request=request,
+            name="courier/_cards.html",
+            context={
+                "rows": rows,
+                "status": status,
+                "search": search,
+                "user": user,
+            },
+        )
+
+    posting = db.get(OzonPosting, posting_id)
+
+    if posting:
+        old_status = posting.courier_status
+
+        posting.courier_status = courier_status
+
+        if courier_status == "collecting":
+            posting.courier_user_id = user.id
+            posting.courier_username = user.username
+
+        if courier_status == "ready":
+            if not posting.courier_user_id:
+                posting.courier_user_id = user.id
+                posting.courier_username = user.username
+
+        log_item = CourierActionLog(
+            user_id=user.id,
+            username=user.username,
+            posting_id=posting.id,
+            posting_number=posting.posting_number,
+            action="change_courier_status",
+            old_status=old_status,
+            new_status=courier_status,
+        )
+
+        db.add(log_item)
+        db.commit()
 
     rows = get_courier_rows(db, status=status, search=search)
 
@@ -158,6 +199,7 @@ def update_courier_status(
             "rows": rows,
             "status": status,
             "search": search,
+            "user": user,
         },
     )
 
@@ -168,6 +210,7 @@ def courier_cards_partial(
     db: Session = Depends(get_db),
     status: str = Query("awaiting_packaging"),
     search: str = Query(""),
+    user: WebUser = Depends(get_current_user),
 ):
     rows = get_courier_rows(db, status=status, search=search)
 
@@ -186,7 +229,8 @@ def courier_cards_partial(
 async def download_posting_label(
     posting_id: int,
     db: Session = Depends(get_db),
-    ):
+    user: WebUser = Depends(get_current_user),
+):
     posting = db.get(OzonPosting, posting_id)
 
     allowed_ozon_statuses = {

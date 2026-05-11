@@ -7,6 +7,15 @@
             <h1>Страница курьера</h1>
             <p>Список отправлений Ozon</p>
         </div>
+        <div class="top-actions">
+            {% if user and user.role == "admin" %}
+                <a class="btn gray" href="/admin">Админка</a>
+            {% endif %}
+
+            <form method="post" action="/logout">
+                <button class="btn red" type="submit">Выйти</button>
+            </form>
+        </div>
     </header>
 
     <form class="filters" method="get" action="/courier">

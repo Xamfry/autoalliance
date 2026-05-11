@@ -23,6 +23,7 @@ Base = declarative_base()
 def init_db() -> None:
     import src.autoalliance.models
     import src.ozon.models
+    import src.web.models
 
     Base.metadata.create_all(bind=engine)
     

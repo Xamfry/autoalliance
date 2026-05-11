@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     autoalliance_api_key: str | None = None
     autoalliance_base_url: str = "https://beta.autoopt.ru"
     autoalliance_timeout: int = 60
+    web_secret_key: str = "change-this-super-secret-key"
 
     model_config = SettingsConfigDict(
         env_file=".env",

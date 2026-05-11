@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="login-page">
+    <form class="login-card" method="post" action="/login">
+        <h1>Вход</h1>
+
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
+
+        <input type="hidden" name="next_url" value="{{ next_url }}">
+        <input name="username" placeholder="Логин" required>
+        <input name="password" type="password" placeholder="Пароль" required>
+
+        <button type="submit">Войти</button>
+        
+    </form>
+</div>
+{% endblock %}

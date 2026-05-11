@@ -1,0 +1,42 @@
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Дата</th>
+                <th>Пользователь</th>
+                <th>Отправление</th>
+                <th>Действие</th>
+                <th>Было</th>
+                <th>Стало</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td>
+                    {% if log.created_at %}
+                        {{ log.created_at.strftime("%d.%m.%Y %H:%M:%S") }}
+                    {% endif %}
+                </td>
+
+                <td>{{ log.username or "-" }}</td>
+
+                <td>{{ log.posting_number or "-" }}</td>
+
+                <td>{{ log.action_ru }}</td>
+
+                <td>{{ log.old_status_ru }}</td>
+
+                <td>{{ log.new_status_ru }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" class="empty">
+                    Логов пока нет
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
