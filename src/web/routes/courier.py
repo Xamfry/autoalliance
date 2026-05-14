@@ -70,13 +70,22 @@ def get_courier_rows(
         stmt = stmt.where(OzonPosting.status == status)
 
     if search:
-        like = f"%{search}%"
+        like = f"%{search.strip()}%"
+
         stmt = stmt.where(
             or_(
                 OzonPosting.posting_number.ilike(like),
+                OzonPosting.order_number.ilike(like),
+
                 OzonPostingProduct.offer_id.ilike(like),
                 OzonPostingProduct.manufacturer_article.ilike(like),
                 OzonPostingProduct.name.ilike(like),
+
+                SourceProduct.article.ilike(like),
+                SourceProduct.manufacturer_article.ilike(like),
+                SourceProduct.factory_article.ilike(like),
+                SourceProduct.source_code.ilike(like),
+                SourceProduct.source_name.ilike(like),
             )
         )
 

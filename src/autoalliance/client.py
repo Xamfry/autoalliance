@@ -179,3 +179,27 @@ class AutoAllianceClient:
             return data
 
         return None
+
+
+    async def create_order_from_items(
+        self,
+        *,
+        items: list[dict],
+        profile_id: int | None = None,
+        comment: str | None = None,
+    ) -> dict:
+        payload = {
+            "profile_id": profile_id,
+            "comment": comment,
+            "items": items,
+        }
+
+        data = await self._post_with_retries(
+            "/api/v2/order/items",
+            json_data=payload,
+        )
+
+        if isinstance(data, dict):
+            return data
+
+        return {"raw": data}
