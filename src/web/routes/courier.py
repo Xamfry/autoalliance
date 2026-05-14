@@ -62,7 +62,17 @@ def get_courier_rows(
         )
         .join(OzonPostingProduct, OzonPostingProduct.posting_id == OzonPosting.id)
         .join(OzonShop, OzonShop.id == OzonPosting.shop_id)
-        .outerjoin(SourceProduct, SourceProduct.article == OzonPostingProduct.offer_id)
+        .outerjoin(
+            SourceProduct,
+            or_(
+                SourceProduct.article == OzonPostingProduct.offer_id,
+                SourceProduct.manufacturer_article == OzonPostingProduct.offer_id,
+                SourceProduct.factory_article == OzonPostingProduct.offer_id,
+                SourceProduct.article == OzonPostingProduct.manufacturer_article,
+                SourceProduct.manufacturer_article == OzonPostingProduct.manufacturer_article,
+                SourceProduct.factory_article == OzonPostingProduct.manufacturer_article,
+            ),
+        )
         .order_by(OzonPosting.in_process_at.desc())
     )
 
