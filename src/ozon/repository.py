@@ -304,3 +304,51 @@ class OzonRepository:
 
         self.db.flush()
         return saved
+    
+    
+    def list_products_for_price_stock_sync(
+        self,
+        *,
+        shop_id: int | None = None,
+    ) -> list[OzonProduct]:
+        query = select(OzonProduct).where(
+            OzonProduct.archived.is_(False),
+            OzonProduct.moderate_status == "approved",
+            OzonProduct.offer_id.is_not(None),
+        )
+
+        if shop_id is not None:
+            query = query.where(OzonProduct.shop_id == shop_id)
+
+        return list(self.db.scalars(query.order_by(OzonProduct.id)))
+
+
+    def update_supplier_data_by_offer_id(
+        self,
+        *,
+        shop_id: int,
+        offer_id: str,
+        supplier_price_rub: float | None,
+        supplier_qty: int | None,
+    ) -> None:
+        product = self.db.scalar(
+            select(OzonProduct).where(
+                OzonProduct.shop_id == shop_id,
+                OzonProduct.offer_id == offer_id,
+            )
+        )
+
+        if not product:
+            return
+
+        product.supplier_price_rub = supplier_price_rub
+        product.supplier_qty = supplier_qty
+
+
+    def update_price_calc(
+        self,
+        *,
+        product: OzonProduct,
+        price_calc: int | None,
+    ) -> None:
+        product.price_calc = price_calc
