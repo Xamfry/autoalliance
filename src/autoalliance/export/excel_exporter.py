@@ -4,6 +4,28 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from src.autoalliance.models import AutoAllianceProduct
+from src.ozon.pricing import calc_ozon_price, calc_volume_liters_from_meters
+
+
+EXPORT_OZON_COMMISSION = 0.14
+def _calc_export_ozon_price(product: AutoAllianceProduct) -> int | None:
+    if product.price is None:
+        return None
+
+    volume_liters = calc_volume_liters_from_meters(
+        length_m=product.preview_length,
+        width_m=product.preview_width,
+        height_m=product.preview_height,
+    )
+
+    if volume_liters is None:
+        return None
+
+    return calc_ozon_price(
+        base=product.price,
+        volume=volume_liters,
+        commission=EXPORT_OZON_COMMISSION,
+    )
 
 
 def _join_urls(value) -> str:
@@ -77,7 +99,7 @@ def _product_to_row(product: AutoAllianceProduct) -> dict:
         "Высота, м": product.preview_height,
         "Длина, м": product.preview_length,
         "Вес, кг": product.preview_weight,
-
+        "Цена на Озон": _calc_export_ozon_price(product),
         "Ссылка на сайт": product.site_url,
     }
     
