@@ -62,7 +62,17 @@ def get_courier_rows(
         )
         .join(OzonPostingProduct, OzonPostingProduct.posting_id == OzonPosting.id)
         .join(OzonShop, OzonShop.id == OzonPosting.shop_id)
-        .outerjoin(SourceProduct, SourceProduct.article == OzonPostingProduct.offer_id)
+        .outerjoin(
+            SourceProduct,
+            or_(
+                SourceProduct.article == OzonPostingProduct.offer_id,
+                SourceProduct.manufacturer_article == OzonPostingProduct.offer_id,
+                SourceProduct.factory_article == OzonPostingProduct.offer_id,
+                SourceProduct.article == OzonPostingProduct.manufacturer_article,
+                SourceProduct.manufacturer_article == OzonPostingProduct.manufacturer_article,
+                SourceProduct.factory_article == OzonPostingProduct.manufacturer_article,
+            ),
+        )
         .order_by(OzonPosting.in_process_at.desc())
     )
 
@@ -70,13 +80,22 @@ def get_courier_rows(
         stmt = stmt.where(OzonPosting.status == status)
 
     if search:
-        like = f"%{search}%"
+        like = f"%{search.strip()}%"
+
         stmt = stmt.where(
             or_(
                 OzonPosting.posting_number.ilike(like),
+                OzonPosting.order_number.ilike(like),
+
                 OzonPostingProduct.offer_id.ilike(like),
                 OzonPostingProduct.manufacturer_article.ilike(like),
                 OzonPostingProduct.name.ilike(like),
+
+                SourceProduct.article.ilike(like),
+                SourceProduct.manufacturer_article.ilike(like),
+                SourceProduct.factory_article.ilike(like),
+                SourceProduct.source_code.ilike(like),
+                SourceProduct.source_name.ilike(like),
             )
         )
 

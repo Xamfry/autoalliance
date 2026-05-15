@@ -244,3 +244,21 @@ class OzonClient:
             f"posting_numbers={posting_numbers}. "
             f"last_error={last_error}"
         )
+        
+    
+    async def update_prices(self, prices: list[dict]) -> dict:
+        return await self._post(
+            "/v1/product/import/prices",
+            {
+                "prices": prices,
+            },
+        )
+
+
+    async def update_stocks(self, stocks: list[dict]) -> dict:
+        return await self._post(
+            "/v2/products/stocks",
+            {
+                "stocks": stocks,
+            },
+        )
