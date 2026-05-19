@@ -129,13 +129,19 @@ python -m src.scripts.ozon_import_product_details --only-empty
 Импорт каталога:
 
 ```bash
-python -m src.scripts.import_products path_to_DB
+python -m src.scripts.import_products path_to_XLSX
 ```
 
 Пример:
 
 ```bash
 python -m src.scripts.import_products .\data\AVTO-ALIANZ.xlsx
+```
+
+Лимит (ОПЦИОНАЛЬНО):
+
+```bash
+--limit INT
 ```
 
 Затем дополнение данных для получения детальных характеристик:
