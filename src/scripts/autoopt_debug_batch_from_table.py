@@ -7,6 +7,8 @@ import pandas as pd
 from pathlib import Path
 from dotenv import load_dotenv
 
+from src.app.logging_config import configure_logging
+
 
 ARTICLE_COLUMNS = [
     "Артикул",
@@ -106,6 +108,8 @@ async def main() -> None:
     parser.add_argument("--batch-size", type=int, default=100)
 
     args = parser.parse_args()
+
+    configure_logging("autoopt_debug_batch_from_table")
 
     token = os.getenv("AUTOALLIANCE_API_KEY")
     base_url = os.getenv("AUTOALLIANCE_BASE_URL", "https://beta.autoopt.ru").rstrip("/")

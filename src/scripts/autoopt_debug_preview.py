@@ -4,6 +4,8 @@ import json
 import httpx
 from pathlib import Path
 
+from src.app.logging_config import configure_logging
+
 
 HEADERS = {
     "Accept": "application/json",
@@ -33,6 +35,8 @@ async def main() -> None:
         help="Код товара Autoopt, например 000003",
     )
     args = parser.parse_args()
+
+    configure_logging("autoopt_debug_preview")
 
     order_code = clean_order_code(args.order_code)
 

@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 
+from src.app.logging_config import configure_logging
 from src.app.db import SessionLocal, init_db
 from src.ozon.repository import OzonRepository
 from src.ozon.service import OzonProductImportService
@@ -10,6 +11,8 @@ async def async_main() -> None:
     parser = argparse.ArgumentParser(description="Import Ozon products to local SQLite DB")
     parser.add_argument("--shop", default=None, help="Import only selected shop_name")
     args = parser.parse_args()
+
+    configure_logging("ozon_import_products")
     init_db()
     with SessionLocal() as db:
         repo = OzonRepository(db)

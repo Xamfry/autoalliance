@@ -13,6 +13,7 @@ log = logging.getLogger(__name__)
 
 async def sync_postings_job(days: int = 7) -> None:
     started_at = datetime.now()
+    log.info("Posting sync started: days=%s", days)
 
     with SessionLocal() as db:
         service = PostingSyncService(db)
@@ -32,6 +33,7 @@ async def sync_postings_job(days: int = 7) -> None:
 
 async def sync_price_stock_job() -> None:
     started_at = datetime.now()
+    log.info("Price/stock sync started")
 
     with SessionLocal() as db:
         service = PriceStockSyncService(db)
@@ -51,6 +53,7 @@ async def sync_price_stock_job() -> None:
 
 async def purchase_new_postings_job() -> None:
     started_at = datetime.now()
+    log.info("AutoAlliance purchase started")
 
     with SessionLocal() as db:
         service = AutoAlliancePurchaseService(db)
@@ -94,7 +97,7 @@ def create_scheduler(
         max_instances=1,
         coalesce=True,
     )
-    
+
     scheduler.add_job(
         purchase_new_postings_job,
         trigger="interval",
@@ -103,6 +106,12 @@ def create_scheduler(
         replace_existing=True,
         max_instances=1,
         coalesce=True,
+    )
+
+    log.info(
+        "Scheduler configured: postings=%ss, purchases=60s, price_stock=%ss",
+        interval_seconds,
+        price_stock_interval_seconds,
     )
 
     return scheduler

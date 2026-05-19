@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import httpx
 
+from src.app.logging_config import configure_logging
 from src.app.db import SessionLocal, init_db
 from src.ozon.client import OzonClient
 from src.ozon.repository import OzonRepository
@@ -14,6 +15,8 @@ async def async_main() -> None:
     parser.add_argument("--shop_name", default=None)
 
     args = parser.parse_args()
+
+    configure_logging("update_price_by_sku")
 
     init_db()
 

@@ -2,6 +2,7 @@ import argparse
 
 from sqlalchemy import select
 
+from src.app.logging_config import configure_logging
 from src.app.db import SessionLocal, init_db
 from src.web.auth import hash_password
 from src.web.models import WebUser
@@ -13,6 +14,8 @@ def main() -> None:
     parser.add_argument("--password", required=True)
 
     args = parser.parse_args()
+
+    configure_logging("create_admin")
 
     init_db()
 

@@ -1,5 +1,6 @@
 import argparse
 
+from src.app.logging_config import configure_logging
 from src.app.db import SessionLocal, init_db
 from src.ozon.models import OzonShop
 from src.ozon.repository import OzonRepository
@@ -10,6 +11,8 @@ def main() -> None:
     parser.add_argument("shop_id", type=int, nargs="?", help="Ozon shop ID from ozon_shops")
     parser.add_argument("--yes", action="store_true", help="Delete without confirmation")
     args = parser.parse_args()
+
+    configure_logging("ozon_delete_shop")
 
     init_db()
     with SessionLocal() as db:

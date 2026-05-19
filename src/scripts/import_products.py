@@ -3,6 +3,7 @@ import asyncio
 import logging
 from pathlib import Path
 
+from src.app.logging_config import configure_logging
 from src.app.db import init_db
 from src.autoalliance.parser.import_service import ImportProductsService
 
@@ -27,6 +28,8 @@ async def async_main() -> None:
     parser.add_argument("--batch-size", type=int, default=100)
 
     args = parser.parse_args()
+
+    configure_logging("import_products")
 
     setup_logging()
     init_db()

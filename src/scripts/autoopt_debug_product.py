@@ -6,6 +6,8 @@ import httpx
 from pathlib import Path
 from dotenv import load_dotenv
 
+from src.app.logging_config import configure_logging
+
 
 def print_product(item: dict) -> None:
     print("\n=== ОСНОВНЫЕ ПОЛЯ ===")
@@ -53,6 +55,8 @@ async def main() -> None:
     parser.add_argument("--brand", default=None, help="Бренд товара")
     parser.add_argument("--method", choices=["batch", "article", "article-brand"], default="article")
     args = parser.parse_args()
+
+    configure_logging("autoopt_debug_product")
 
     token = os.getenv("AUTOALLIANCE_API_KEY")
     base_url = os.getenv("AUTOALLIANCE_BASE_URL", "https://beta.autoopt.ru").rstrip("/")

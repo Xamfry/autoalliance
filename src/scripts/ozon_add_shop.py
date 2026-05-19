@@ -1,10 +1,12 @@
 from getpass import getpass
 
+from src.app.logging_config import configure_logging
 from src.app.db import SessionLocal, init_db
 from src.ozon.repository import OzonRepository
 
 
 def main() -> None:
+    configure_logging("ozon_add_shop")
     init_db()
     shop_name = input("Shop name: ").strip()
     client_id = input("Ozon Client-Id: ").strip()

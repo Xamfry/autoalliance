@@ -3,6 +3,7 @@ import asyncio
 import logging
 from pathlib import Path
 
+from src.app.logging_config import configure_logging
 from src.app.db import SessionLocal, init_db
 from src.ozon.sync.posting_sync_service import PostingSyncService
 
@@ -29,6 +30,8 @@ async def async_main() -> None:
     parser.add_argument("--shop", default=None)
 
     args = parser.parse_args()
+
+    configure_logging("ozon_sync_postings")
 
     setup_logging()
     init_db()

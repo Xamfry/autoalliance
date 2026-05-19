@@ -42,6 +42,7 @@ class AutoAlliancePurchaseService:
 
         rows = self._list_posting_products()
         stats.candidates = len(rows)
+        log.info("AutoAlliance purchase candidates: %s", stats.candidates)
 
         headers = {"User-Agent": "autoalianse-worker"}
 
@@ -56,6 +57,13 @@ class AutoAlliancePurchaseService:
             client = AutoAllianceClient(http_client)
 
             for posting, product in rows:
+                log.info(
+                    "AutoAlliance purchase candidate: posting=%s offer_id=%s sku=%s qty=%s",
+                    posting.posting_number,
+                    product.offer_id,
+                    product.sku,
+                    product.quantity,
+                )
                 source_product = self._find_source_product(product)
 
                 if not source_product or not source_product.source_code:
@@ -79,12 +87,28 @@ class AutoAlliancePurchaseService:
 
                     if purchase.status in {"done", "processing", "failed"}:
                         stats.skipped += 1
+                        log.info(
+                            "AutoAlliance purchase skipped: posting=%s offer_id=%s source_code=%s unit=%s status=%s",
+                            posting.posting_number,
+                            product.offer_id,
+                            source_product.source_code,
+                            purchase_index,
+                            purchase.status,
+                        )
                         continue
 
                     try:
                         purchase.status = "processing"
                         purchase.error_message = None
                         self.db.commit()
+
+                        log.info(
+                            "AutoAlliance order create request: posting=%s offer_id=%s source_code=%s unit=%s",
+                            posting.posting_number,
+                            product.offer_id,
+                            source_product.source_code,
+                            purchase_index,
+                        )
 
                         response = await client.create_order_from_items(
                             items=[
@@ -147,6 +171,7 @@ class AutoAlliancePurchaseService:
 
                     await asyncio.sleep(self.delay)
 
+        log.info("AutoAlliance purchase finished with stats: %s", stats.as_dict())
         return stats.as_dict()
 
 

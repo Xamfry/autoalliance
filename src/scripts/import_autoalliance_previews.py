@@ -6,6 +6,7 @@ from pathlib import Path
 from sqlalchemy import select
 from tqdm import tqdm
 
+from src.app.logging_config import configure_logging
 from src.app.db import SessionLocal, init_db
 from src.autoalliance.client import AutoAllianceClient
 from src.autoalliance.models import AutoAllianceProduct
@@ -21,6 +22,8 @@ async def async_main() -> None:
     parser.add_argument("--delay", type=float, default=0.2)
     parser.add_argument("--only-empty", action="store_true")
     args = parser.parse_args()
+
+    configure_logging("import_autoalliance_previews")
 
     init_db()
 

@@ -5,6 +5,7 @@ import httpx
 from pathlib import Path
 from tqdm import tqdm
 
+from src.app.logging_config import configure_logging
 from src.app.db import SessionLocal, init_db
 from src.ozon.client import OzonClient
 from src.ozon.repository import OzonRepository
@@ -40,6 +41,8 @@ async def async_main() -> None:
     parser.add_argument("--delay", type=float, default=0.2)
 
     args = parser.parse_args()
+
+    configure_logging("ozon_import_product_details")
 
     if args.batch_size > 100:
         raise RuntimeError("batch-size больше 100 не ставим")

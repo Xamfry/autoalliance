@@ -30,6 +30,8 @@ class PostingSyncService:
             "saved": 0,
         }
 
+        log.info("Posting sync shop started: shop_id=%s shop=%s days=%s", shop.id, shop.shop_name, days)
+
         headers = {
             "Client-Id": shop.client_id,
             "Api-Key": shop.token,
@@ -51,10 +53,23 @@ class PostingSyncService:
 
             stats["postings_total"] = len(all_postings)
             stats["grouped_found"] = len(grouped_postings)
+            log.info(
+                "Posting sync fetched: shop=%s postings_total=%s grouped_found=%s",
+                shop.shop_name,
+                stats["postings_total"],
+                stats["grouped_found"],
+            )
 
             for posting in grouped_postings:
                 try:
                     split_products = posting.get_split_products()
+
+                    log.info(
+                        "Posting split started: shop=%s posting=%s products=%s",
+                        shop.shop_name,
+                        posting.posting_number,
+                        len(split_products),
+                    )
 
                     split_request = PostingSplitRequest.from_posting_products(
                         posting_number=posting.posting_number,
@@ -84,12 +99,15 @@ class PostingSyncService:
 
             self.db.commit()
             stats["saved"] = saved
+            log.info("Posting sync saved: shop=%s saved=%s", shop.shop_name, saved)
 
+        log.info("Posting sync shop finished: %s", stats)
         return stats
 
 
     async def sync_all_shops(self, *, days: int = 7, shop_name: str | None = None) -> list[dict]:
         shops = self.repository.list_shops()
+        log.info("Posting sync shops loaded: count=%s shop_filter=%s", len(shops), shop_name)
 
         if shop_name:
             shops = [shop for shop in shops if shop.shop_name == shop_name]

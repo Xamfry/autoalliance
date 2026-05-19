@@ -2,6 +2,7 @@ import argparse
 from datetime import datetime
 from pathlib import Path
 
+from src.app.logging_config import configure_logging
 from src.app.db import SessionLocal, init_db
 from src.autoalliance.export.excel_exporter import export_autoalliance_products_to_excel
 
@@ -20,6 +21,8 @@ def main() -> None:
     )
 
     args = parser.parse_args()
+
+    configure_logging("export_autoalliance_products")
 
     init_db()
 

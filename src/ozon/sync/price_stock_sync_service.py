@@ -131,6 +131,7 @@ class PriceStockSyncService:
     async def sync_all_shops(self) -> list[dict]:
         results: list[dict] = []
         shops = self.ozon_repo.list_active_shops()
+        log.info("Price/stock sync: active shops=%s", len(shops))
 
         for shop in shops:
             stats = await self.sync_shop(shop)
@@ -141,10 +142,12 @@ class PriceStockSyncService:
 
     async def sync_shop(self, shop: OzonShop) -> ShopSyncStats:
         stats = ShopSyncStats(shop=shop.shop_name)
+        log.info("Price/stock sync shop started: shop_id=%s shop=%s warehouse=%s", shop.id, shop.shop_name, shop.warehouse)
 
         if not shop.warehouse:
             stats.failed += 1
             log.error("Price/stock sync skipped: shop=%s has no warehouse", shop.shop_name)
+            log.info("Price/stock sync shop finished: %s", stats.as_dict())
             return stats
 
         # 1. Сначала обновляем локальную базу данными Ozon.
@@ -153,8 +156,11 @@ class PriceStockSyncService:
 
         rows = self._list_sync_rows(shop)
         stats.candidates = len(rows)
+        log.info("Price/stock candidates: shop=%s count=%s", shop.shop_name, stats.candidates)
 
         if not rows:
+            log.warning("Price/stock sync skipped: shop=%s has no candidates", shop.shop_name)
+            log.info("Price/stock sync shop finished: %s", stats.as_dict())
             return stats
 
         headers = {}
@@ -178,8 +184,11 @@ class PriceStockSyncService:
                     for row in batch
                 ]
 
+                log.info("AutoAlliance batch request: shop=%s batch_size=%s", shop.shop_name, len(batch))
+
                 try:
                     response_items = await auto_client.search_parts_batch(payload, analogs=False)
+                    log.info("AutoAlliance batch response: shop=%s items=%s", shop.shop_name, len(response_items))
                 except Exception as exc:
                     stats.failed += len(batch)
                     log.exception(
@@ -202,6 +211,7 @@ class PriceStockSyncService:
                     if not offer:
                         stats.skipped += 1
                         row.ozon_product.supplier_qty = 0
+                        log.warning("AutoAlliance offer not found: shop=%s offer_id=%s article=%s brand=%s", shop.shop_name, row.ozon_product.offer_id, row.search_article, row.search_brand)
                         continue
 
                     try:
@@ -226,7 +236,9 @@ class PriceStockSyncService:
                 await asyncio.sleep(0.2)
 
         # 2. После сохранения в БД отправляем сначала цены, потом остатки.
+        log.info("Sending Ozon prices: shop=%s", shop.shop_name)
         stats.price_sent = await self._send_prices(shop)
+        log.info("Sending Ozon stocks: shop=%s", shop.shop_name)
         stats.stock_sent = await self._send_stocks(shop)
 
         self.ozon_repo.add_sync_log(
@@ -239,6 +251,7 @@ class PriceStockSyncService:
             items_failed=stats.failed,
         )
 
+        log.info("Price/stock sync shop finished: %s", stats.as_dict())
         return stats
 
 

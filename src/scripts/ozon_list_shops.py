@@ -1,8 +1,10 @@
+from src.app.logging_config import configure_logging
 from src.app.db import SessionLocal, init_db
 from src.ozon.repository import OzonRepository
 
 
 def main() -> None:
+    configure_logging("ozon_list_shops")
     init_db()
     with SessionLocal() as db:
         repo = OzonRepository(db)

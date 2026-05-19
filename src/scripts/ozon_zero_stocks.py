@@ -3,6 +3,7 @@ import asyncio
 import httpx
 from sqlalchemy import select
 
+from src.app.logging_config import configure_logging
 from src.app.db import SessionLocal, init_db
 from src.ozon.client import OzonClient
 from src.ozon.models import OzonProduct
@@ -19,6 +20,8 @@ async def async_main() -> None:
     parser.add_argument("--yes", action="store_true")
 
     args = parser.parse_args()
+
+    configure_logging("ozon_zero_stocks")
 
     init_db()
 

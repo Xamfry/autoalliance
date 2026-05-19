@@ -2,6 +2,7 @@ import asyncio
 import logging
 from pathlib import Path
 
+from src.app.logging_config import configure_logging
 from src.app.db import SessionLocal, init_db
 from src.ozon.sync.price_stock_sync_service import PriceStockSyncService
 
@@ -19,6 +20,7 @@ def setup_logging() -> None:
 
 
 async def async_main() -> None:
+    configure_logging("ozon_update_stocks")
     setup_logging()
     init_db()
 

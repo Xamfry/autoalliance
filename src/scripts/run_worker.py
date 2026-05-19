@@ -1,8 +1,8 @@
 import asyncio
 import logging
-from pathlib import Path
 
 from src.app.db import init_db
+from src.app.logging_config import configure_logging
 from src.app.scheduler import (
     create_scheduler,
     sync_postings_job,
@@ -15,21 +15,9 @@ from src.app.scheduler import (
 PRICE_STOCK_SYNC_INTERVAL_SECONDS = 3 * 60 * 60
 
 
-def setup_logging() -> None:
-    Path("data/logs").mkdir(parents=True, exist_ok=True)
-
-    logging.basicConfig(
-        level=logging.INFO,
-        format="[%(asctime)s] [%(levelname)s] %(name)s: %(message)s",
-        handlers=[
-            logging.FileHandler("data/logs/worker.log", encoding="utf-8"),
-            logging.StreamHandler(),
-        ],
-    )
-
 
 async def main() -> None:
-    setup_logging()
+    configure_logging("worker")
     init_db()
 
     # Первый запуск сразу, дальше по расписанию.
