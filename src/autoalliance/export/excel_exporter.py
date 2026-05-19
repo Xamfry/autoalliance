@@ -103,6 +103,7 @@ def _product_to_row(product: AutoAllianceProduct) -> dict:
         "Ссылка на сайт": product.site_url,
     }
     
+    
 ONLY_FOUND_EXCLUDE_COLUMNS = [
     "Ручная категория",
     "Ручная подкатегория",
@@ -113,6 +114,7 @@ ONLY_FOUND_EXCLUDE_COLUMNS = [
     "Искомый бренд",
     "Ошибка",
 ]
+
 
 def _filter_columns_for_only_found(df: pd.DataFrame) -> pd.DataFrame:
     return df.drop(

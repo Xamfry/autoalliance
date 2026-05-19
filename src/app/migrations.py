@@ -432,3 +432,4 @@ def run_sqlite_migrations(engine: Engine) -> None:
 
     _migrate_web_users(engine)
     _migrate_courier_action_logs(engine)
+    

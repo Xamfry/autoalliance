@@ -1,5 +1,4 @@
 import argparse
-
 from sqlalchemy import select
 
 from src.app.logging_config import configure_logging
@@ -37,3 +36,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+    
