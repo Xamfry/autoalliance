@@ -1,4 +1,5 @@
 import httpx
+import logging
 from pathlib import Path
 from fastapi import APIRouter, Depends, Query, Request, Form
 from fastapi.responses import HTMLResponse, Response
@@ -7,7 +8,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from src.autoalliance.models import SourceProduct
-from src.ozon.models import OzonPosting, OzonPostingProduct, OzonShop
+from src.ozon.models import OzonPosting, OzonPostingProduct, OzonShop, OzonProduct
 from src.ozon.client import OzonClient
 from src.web.deps import get_db, get_current_user
 from src.web.models import WebUser, CourierActionLog
@@ -15,7 +16,7 @@ from src.web.models import WebUser, CourierActionLog
 
 router = APIRouter(prefix="/courier", tags=["courier"])
 templates = Jinja2Templates(directory="src/web/templates")
-
+log = logging.getLogger(__name__)
 
 COURIER_STATUS_RU = {
     None: "Новый",
@@ -157,7 +158,7 @@ def courier_page(
 
 
 @router.post("/posting/{posting_id}/status", response_class=HTMLResponse)
-def update_courier_status(
+async def update_courier_status(
     request: Request,
     posting_id: int,
     courier_status: str = Form(...),
@@ -184,32 +185,113 @@ def update_courier_status(
 
     posting = db.get(OzonPosting, posting_id)
 
-    if posting:
-        old_status = posting.courier_status
+    if not posting:
+        rows = get_courier_rows(db, status=status, search=search)
 
-        posting.courier_status = courier_status
+        return templates.TemplateResponse(
+            request=request,
+            name="courier/_cards.html",
+            context={
+                "rows": rows,
+                "status": status,
+                "search": search,
+                "user": user,
+            },
+        )
 
-        if courier_status == "collecting":
+    old_status = posting.courier_status
+
+    if courier_status == "collecting":
+        if posting.status != "awaiting_packaging":
+            return templates.TemplateResponse(
+                request=request,
+                name="error.html",
+                context={
+                    "title": "Нельзя собрать отправление",
+                    "message": (
+                        "Стикер можно скачать только после успешной сборки в Ozon. "
+                        f"Текущий статус Ozon: {posting.status}"
+                    ),
+                    "back_url": "/courier",
+                },
+                status_code=409,
+            )
+
+        shop = db.get(OzonShop, posting.shop_id)
+
+        if not shop:
+            return templates.TemplateResponse(
+                request=request,
+                name="error.html",
+                context={
+                    "title": "Магазин не найден",
+                    "message": "Магазин для отправления не найден.",
+                    "back_url": "/courier",
+                },
+                status_code=404,
+            )
+
+        try:
+            ship_products = _build_ozon_ship_products(db, posting)
+
+            async with httpx.AsyncClient(timeout=60) as http_client:
+                client = OzonClient(
+                    http_client=http_client,
+                    shop=shop,
+                )
+
+                await client.ship_fbs_posting_v4(
+                    posting_number=posting.posting_number,
+                    products=ship_products,
+                )
+
+        except Exception as exc:
+            log.exception(
+                "Ozon ship failed from courier page: posting=%s error=%s",
+                posting.posting_number,
+                exc,
+            )
+
+            return templates.TemplateResponse(
+                request=request,
+                name="error.html",
+                context={
+                    "title": "Ошибка сборки отправления",
+                    "message": (
+                        f"Ozon не перевёл отправление в сборку: {exc}"
+                    ),
+                    "back_url": "/courier",
+                },
+                status_code=502,
+            )
+
+        posting.status = "awaiting_deliver"
+        posting.courier_status = "collecting"
+        posting.courier_user_id = user.id
+        posting.courier_username = user.username
+
+    elif courier_status == "ready":
+        posting.courier_status = "ready"
+
+        if not posting.courier_user_id:
             posting.courier_user_id = user.id
             posting.courier_username = user.username
 
-        if courier_status == "ready":
-            if not posting.courier_user_id:
-                posting.courier_user_id = user.id
-                posting.courier_username = user.username
+    else:
+        posting.courier_status = courier_status
 
-        log_item = CourierActionLog(
-            user_id=user.id,
-            username=user.username,
-            posting_id=posting.id,
-            posting_number=posting.posting_number,
-            action="change_courier_status",
-            old_status=old_status,
-            new_status=courier_status,
-        )
+    log_item = CourierActionLog(
+        user_id=user.id,
+        username=user.username,
+        posting_id=posting.id,
+        posting_number=posting.posting_number,
+        action="change_courier_status",
+        old_status=old_status,
+        new_status=courier_status,
+    )
 
-        db.add(log_item)
-        db.commit()
+    db.add(log_item)
+    db.commit()
 
     rows = get_courier_rows(db, status=status, search=search)
 
@@ -223,7 +305,7 @@ def update_courier_status(
             "user": user,
         },
     )
-
+    
 
 @router.get("/list", response_class=HTMLResponse)
 def courier_cards_partial(
@@ -280,7 +362,6 @@ async def download_posting_label(
         )
 
     allowed_ozon_statuses = {
-        "awaiting_packaging",
         "awaiting_deliver",
     }
 
@@ -360,3 +441,33 @@ async def download_posting_label(
             "Content-Disposition": f'attachment; filename="{filename}"'
         },
     )
+
+
+def _build_ozon_ship_products(
+    db: Session,
+    posting: OzonPosting,
+) -> list[dict]:
+    products: list[dict] = []
+
+    posting_products = list(posting.products or [])
+
+    for posting_product in posting_products:
+        if not posting_product.sku:
+            raise ValueError(
+                f"Не найден sku для товара {posting_product.offer_id}. "
+                "Для сборки Ozon нужен именно sku из отправления."
+            )
+
+        products.append(
+            {
+                "product_id": int(posting_product.sku),
+                "quantity": int(posting_product.quantity or 1),
+            }
+        )
+
+    if not products:
+        raise ValueError(
+            f"У отправления {posting.posting_number} нет товаров"
+        )
+
+    return products

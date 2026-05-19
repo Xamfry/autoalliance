@@ -3,6 +3,9 @@ import httpx
 import asyncio
 import base64
 from typing import Any
+import logging
+
+log = logging.getLogger(__name__)
 
 from src.ozon.models import OzonShop
 from src.ozon.schemas.posting_request import PostingRequest
@@ -189,14 +192,43 @@ class OzonClient:
         *,
         posting_numbers: list[str],
     ) -> bytes | None:
-        data = await self._post(
-            "/v2/posting/fbs/package-label",
-            {
-                "posting_number": posting_numbers,
-            },
-        )
+        if not posting_numbers:
+            return None
 
-        if not isinstance(data, dict):
+        try:
+            response = await self.http_client.post(
+                f"{self.base_url}/v2/posting/fbs/package-label",
+                headers=self.headers,
+                json={
+                    "posting_number": posting_numbers,
+                },
+            )
+
+            response.raise_for_status()
+
+        except httpx.HTTPStatusError as exc:
+            log.error(
+                "Ozon package-label failed: status=%s body=%s posting_numbers=%s",
+                exc.response.status_code,
+                exc.response.text,
+                posting_numbers,
+            )
+            raise
+
+        content_type = response.headers.get("content-type", "").lower()
+        raw = response.content
+
+        if "application/pdf" in content_type or raw.startswith(b"%PDF"):
+            return raw
+
+        try:
+            data = response.json()
+        except ValueError:
+            log.error(
+                "Ozon package-label response is not PDF and not JSON: content_type=%s body=%r",
+                content_type,
+                raw[:500],
+            )
             return None
 
         content = (
@@ -205,13 +237,26 @@ class OzonClient:
             or data.get("pdf")
             or data.get("result", {}).get("content")
             or data.get("result", {}).get("file")
+            or data.get("result", {}).get("pdf")
         )
 
         if not content:
+            log.error(
+                "Ozon package-label JSON has no PDF content: data=%s posting_numbers=%s",
+                data,
+                posting_numbers,
+            )
             return None
 
         if isinstance(content, str):
-            return base64.b64decode(content)
+            try:
+                return base64.b64decode(content)
+            except Exception:
+                log.exception(
+                    "Ozon package-label base64 decode failed: posting_numbers=%s",
+                    posting_numbers,
+                )
+                return None
 
         return None
 
@@ -262,3 +307,38 @@ class OzonClient:
                 "stocks": stocks,
             },
         )
+        
+    
+    async def ship_fbs_posting_v4(
+        self,
+        *,
+        posting_number: str,
+        products: list[dict],
+    ) -> dict:
+        payload = {
+            "posting_number": posting_number,
+            "packages": [
+                {
+                    "products": products,
+                }
+            ],
+            "with": {
+                "additional_data": True,
+            },
+        }
+
+        try:
+            return await self._post(
+                "/v4/posting/fbs/ship",
+                payload,
+            )
+        except httpx.HTTPStatusError as exc:
+            log.error(
+                "Ozon ship failed: status=%s body=%s posting_number=%s payload=%s",
+                exc.response.status_code,
+                exc.response.text,
+                posting_number,
+                payload,
+            )
+            raise
+        
